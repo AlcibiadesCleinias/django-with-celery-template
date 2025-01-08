@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  web:
+  web: &django
     build: ./app
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
@@ -12,6 +12,7 @@ services:
       - ./.env.dev
     depends_on:
       - db
+
   db:
     image: postgres:15
     volumes:
@@ -21,5 +22,49 @@ services:
       - POSTGRES_PASSWORD=hello_django
       - POSTGRES_DB=hello_django_dev
 
+  ## Celery Cluster Dockers. ##
+  celery-beat: &django-celery
+    <<: *django
+    command: celery -A hello_django beat -l DEBUG
+    ports: [ ]
+    depends_on:
+      - db
+      - redis
+
+  # Note, that it uses geven green threads: aka worker for i/o-bound tasks.
+  redis:
+    image: redis:6.0-alpine
+    volumes:
+      - redis_data:/data
+
+  celery-default-worker:
+    <<: *django-celery
+    command: >
+      celery -A hello_django worker
+      -n default@%h
+      --pool=gevent
+      -l ${DOCKER_CELERY_DEFAULT_WORKER_LOG_LEVEL:-INFO}
+      -Q ${DOCKER_CELERY_DEFAULT_WORKER_QUEUES:-default,high_priority,low_priority}
+      -c ${DOCKER_CELERY_DEFAULT_WORKER_CONCURRENCY:-1}
+
+  flower:
+    image: mher/flower:2.0
+    command: celery flower
+    volumes:
+      - flower_data:/data
+    ports:
+      - ${DOCKER_FLOWER_PORT:-5555}:5555
+    depends_on:
+      - redis
+      - celery-beat
+      - celery-default-worker
+    # Flower uses the same settings as celery (but it could be customised properply).
+    env_file:
+      - ./.env.dev
+    environment:
+      - FLOWER_BASIC_AUTH=admin:admin
+
 volumes:
   postgres_data:
+  flower_data:
+  redis_data:
