@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 
+from celery.schedules import crontab
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -134,3 +136,52 @@ MEDIA_ROOT = BASE_DIR / "mediafiles"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'console': {
+            'format': '%(asctime)s %(levelname)s %(name)s %(funcName)s %(message)s %(pathname)s %(lineno)s',
+            'datefmt': '%y %b %d, %H:%M:%S',
+        },
+        'celery': {
+            '()': 'utils.celery.logging.CeleryTaskFormatter',
+            'format': (
+                '%(asctime)s %(levelname)s [%(task_id)s] %(name)s '
+                '%(funcName)s %(message)s %(pathname)s %(lineno)s'
+            ),
+            'datefmt': '%y %b %d, %H:%M:%S',
+        }
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'console',
+            'level': 'DEBUG',
+        },
+        'celery': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'celery',
+            'level': 'DEBUG',
+        }
+
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': os.environ.get('LOG_LEVEL', 'INFO'),
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': os.environ.get('LOG_LEVEL', 'INFO'),
+        },
+        'celery.task': {
+            'handlers': ['celery'],
+            'level': os.environ.get('LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        }
+    },
+}
+
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")

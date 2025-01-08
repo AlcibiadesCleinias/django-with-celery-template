@@ -1,6 +1,14 @@
+import logging
+
+import redis
+from django.conf import settings
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.core.files.storage import FileSystemStorage
 
+from upload.tasks import example_log_counter_task
+
+logger = logging.getLogger(__name__)
 
 def image_upload(request):
     if request.method == "POST" and request.FILES["image_file"]:
@@ -13,3 +21,11 @@ def image_upload(request):
             "image_url": image_url
         })
     return render(request, "upload.html")
+
+
+def example_log_counter_view(requests):
+    _redis = redis.from_url(settings.REDIS_URL)
+    logger.info(f"In view log {_redis.get('foo-counter')}...")
+
+    task_id = example_log_counter_task.delay(11)
+    return HttpResponse(f"OK, task id: {task_id}")

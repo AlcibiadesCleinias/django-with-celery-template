@@ -4,3 +4,10 @@ __pycache
 .env.dev
 .env.prod
 .env.prod.db
+
+.idea/
+venv/
+
+celerybeat.pid
+celerybeat-schedule
+celerybeat.log
