@@ -3,6 +3,8 @@
 
 ## Difference From Forked Source
 
+> PR diff: https://github.com/AlcibiadesCleinias/django-with-celery-template/pull/1
+
 - Integrated Celery Tasks
   - Proposed Celery task code layout (in [tasks.py](app/upload/tasks.py) with calling only logic method inside only), aka separation b/w logic and views.py]
   - Celery logging setup
